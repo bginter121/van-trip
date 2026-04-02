@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Van Trip Planner — Summer 2026</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#0a0f1e;--surf:#1a2340;--surf2:#243055;--surf3:#2e3d66;
+  --bdr:#3a4d7a;--text:#e8edf5;--dim:#8a9bc0;
+  --sky:#38bdf8;--violet:#818cf8;--pink:#f472b6;--orange:#fb923c;
+  --green:#34d399;--yellow:#facc15;--red:#ef4444;--teal:#2dd4bf;
+  --today-glow:rgba(251,191,36,0.25);
+}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{box-shadow:0 0 8px var(--today-glow)}50%{box-shadow:0 0 20px var(--today-glow)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}
+
+body{
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  background:var(--bg);color:var(--text);
+  height:100vh;display:flex;flex-direction:column;overflow:hidden;
+  background-image:radial-gradient(ellipse at 20% 0%,rgba(56,189,248,0.06) 0%,transparent 60%),
+                    radial-gradient(ellipse at 80% 100%,rgba(129,140,248,0.06) 0%,transparent 60%);
+}
+
+/* ═══ HEADER ═══ */
+header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 28px;background:var(--surf);
+  border-bottom:1px solid var(--bdr);flex-shrink:0;
+}
+header h1{
+  font-size:1.4rem;font-weight:800;letter-spacing:-0.3px;
+  display:flex;align-items:center;gap:10px;
+}
+header h1 .logo{font-size:1.6rem;}
+header h1 .title-text{
+  background:linear-gradient(135deg,var(--sky),var(--violet),var(--pink));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+header h1 .subtitle{
+  font-size:0.75rem;font-weight:500;color:var(--dim);
+  -webkit-text-fill-color:var(--dim);margin-left:4px;
+}
+.header-actions{display:flex;gap:8px;align-items:center;}
+.view-btn{
+  padding:7px 16px;background:var(--surf2);border:1px solid var(--bdr);
+  color:var(--dim);border-radius:8px;cursor:pointer;font-size:0.82rem;
+  transition:all .15s;font-family:inherit;
+}
+.view-btn:hover{color:var(--text);border-color:var(--sky);}
+.view-btn.active{background:var(--sky);color:var(--bg);border-color:var(--sky);font-weight:700;}
+
+/* ═══ NAV BAR ═══ */
+.nav{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  padding:12px 28px;background:var(--surf);
+  border-bottom:1px solid var(--bdr);flex-shrink:0;
+}
+.nav-btn{
+  width:40px;height:36px;border-radius:8px;border:1px solid var(--bdr);
+  background:var(--surf2);color:var(--dim);cursor:pointer;font-size:1.1rem;
+  display:flex;align-items:center;justify-content:center;transition:all .15s;
+}
+.nav-btn:hover{background:var(--sky);color:var(--bg);border-color:var(--sky);}
+.month-tab{
+  padding:8px 22px;border-radius:8px;border:1px solid var(--bdr);
+  background:var(--surf2);color:var(--dim);cursor:pointer;
+  font-size:0.95rem;font-weight:600;transition:all .2s;font-family:inherit;
+  position:relative;
+}
+.month-tab:hover{color:var(--text);border-color:var(--sky);}
+.month-tab.active{
+  background:linear-gradient(135deg,var(--sky),var(--violet));
+  color:white;border-color:transparent;font-weight:700;
+  box-shadow:0 4px 15px rgba(56,189,248,0.3);
+}
+.month-tab .event-count{
+  position:absolute;top:-6px;right:-6px;
+  background:var(--pink);color:white;font-size:0.6rem;font-weight:700;
+  width:18px;height:18px;border-radius:50%;
+  display:none;align-items:center;justify-content:center;
+}
+.month-tab .event-count.show{display:flex;}
+.summer-label{
+  font-size:0.7rem;color:var(--dim);text-transform:uppercase;
+  letter-spacing:2px;margin:0 8px;font-weight:600;
+}
+.btn-overview{
+  padding:8px 16px;border-radius:8px;border:1px solid var(--bdr);
+  background:var(--surf2);color:var(--orange);cursor:pointer;
+  font-size:0.82rem;font-weight:600;transition:all .15s;font-family:inherit;
+  margin-left:8px;
+}
+.btn-overview:hover{background:var(--orange);color:var(--bg);border-color:var(--orange);}
+.btn-overview.active{background:var(--orange);color:var(--bg);border-color:var(--orange);}
+
+/* ═══ WEEKDAY HEADER ═══ */
+.weekdays{
+  display:grid;grid-template-columns:repeat(7,1fr);gap:6px;
+  padding:6px 20px 0;flex-shrink:0;
+}
+.weekdays span{
+  text-align:center;font-size:0.82rem;font-weight:700;
+  color:var(--text);padding:10px 0;text-transform:uppercase;letter-spacing:1.5px;
+  background:var(--surf);border-radius:6px;
+}
+.weekdays span:nth-child(1),.weekdays span:nth-child(7){color:var(--pink);opacity:0.7;}
+
+/* ═══ CALENDAR GRID ═══ */
+.cal-wrap{flex:1;overflow-y:auto;padding:6px 20px 8px;display:flex;flex-direction:column;min-height:0;}
+.cal-grid{
+  display:grid;grid-template-columns:repeat(7,1fr);gap:6px;
+  flex:1;grid-auto-rows:1fr;
+}
+.day{
+  background:var(--surf);border:2px solid var(--bdr);
+  border-radius:10px;padding:10px;cursor:pointer;
+  transition:all .18s;position:relative;display:flex;flex-direction:column;
+  animation:fadeIn .3s ease both;
+  box-shadow:0 2px 8px rgba(0,0,0,0.25);
+}
+.day:hover{border-color:var(--sky);transform:translateY(-2px);box-shadow:0 6px 24px rgba(56,189,248,0.2);}
+.day.empty{background:transparent;border:2px solid transparent;cursor:default;box-shadow:none;}
+.day.empty:hover{transform:none;box-shadow:none;border-color:transparent;}
+.day.today{border-color:var(--yellow);animation:pulse 3s infinite;box-shadow:0 0 15px var(--today-glow);}
+.day.weekend{background:var(--surf2);border-color:rgba(244,114,182,0.25);}
+.day.has-event{border-left:4px solid var(--sky);}
+
+.day-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+.day-num{
+  font-size:1.05rem;font-weight:800;color:var(--text);
+  width:30px;height:30px;display:flex;align-items:center;justify-content:center;
+  border-radius:50%;
+}
+.day.today .day-num{background:var(--yellow);color:var(--bg);}
+.day.has-event .day-num{color:var(--sky);background:rgba(56,189,248,0.15);}
+.day-dow{font-size:0.6rem;color:var(--dim);opacity:0.5;}
+
+.event-chip{
+  display:flex;align-items:center;gap:4px;
+  padding:2px 5px;border-radius:4px;margin-top:2px;
+  font-size:0.65rem;line-height:1.2;
+  background:rgba(56,189,248,0.08);color:var(--sky);
+  overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+}
+.event-chip .cat-icon{font-size:0.75rem;flex-shrink:0;}
+.span-bar{
+  position:absolute;bottom:0;left:0;right:0;height:3px;
+  border-radius:0 0 10px 10px;
+}
+
+/* ═══ OVERVIEW (3-month mini) ═══ */
+.overview{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:20px;
+  padding:20px;
+}
+.ov-month{
+  background:var(--surf);border:1px solid var(--bdr);border-radius:12px;
+  padding:16px;cursor:pointer;transition:all .2s;
+}
+.ov-month:hover{border-color:var(--sky);transform:translateY(-3px);box-shadow:0 8px 25px rgba(0,0,0,0.3);}
+.ov-month h3{
+  font-size:1.1rem;margin-bottom:10px;
+  background:linear-gradient(135deg,var(--sky),var(--violet));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.ov-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.ov-day-label{font-size:0.55rem;color:var(--dim);text-align:center;padding:2px 0;font-weight:600;}
+.ov-day{
+  aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+  font-size:0.65rem;color:var(--dim);border-radius:4px;transition:all .15s;
+}
+.ov-day.has-event{background:var(--sky);color:white;font-weight:700;}
+.ov-day.today{background:var(--yellow);color:var(--bg);font-weight:700;}
+.ov-day.empty{visibility:hidden;}
+.ov-stats{
+  display:flex;gap:12px;margin-top:12px;padding-top:10px;
+  border-top:1px solid var(--bdr);font-size:0.72rem;color:var(--dim);
+}
+.ov-stats strong{color:var(--sky);}
+
+/* ═══ TIMELINE ═══ */
+.timeline{padding:20px 28px;max-width:750px;margin:0 auto;width:100%;}
+.tl-empty{
+  text-align:center;color:var(--dim);padding:80px 20px;font-size:1.1rem;
+  background:var(--surf);border:2px dashed var(--bdr);border-radius:16px;
+  margin:20px 0;
+}
+.tl-empty .tl-empty-btn{
+  display:inline-block;margin-top:16px;padding:10px 24px;
+  background:linear-gradient(135deg,var(--sky),var(--violet));
+  color:white;border:none;border-radius:8px;cursor:pointer;
+  font-size:0.9rem;font-weight:700;font-family:inherit;
+  transition:all .15s;
+}
+.tl-empty .tl-empty-btn:hover{opacity:0.85;transform:scale(1.05);}
+.tl-month-label{
+  font-size:0.8rem;font-weight:700;color:var(--violet);
+  text-transform:uppercase;letter-spacing:2px;margin:24px 0 12px;
+  padding-bottom:6px;border-bottom:1px solid var(--bdr);
+}
+.tl-item{
+  display:flex;gap:16px;padding:14px 16px;margin:6px 0;
+  background:var(--surf);border:1px solid var(--bdr);border-radius:10px;
+  cursor:pointer;transition:all .18s;animation:slideIn .3s ease both;
+}
+.tl-item:hover{border-color:var(--sky);transform:translateX(4px);}
+.tl-color{width:4px;border-radius:4px;flex-shrink:0;}
+.tl-date{
+  min-width:90px;font-size:0.82rem;font-weight:700;color:var(--sky);
+  display:flex;flex-direction:column;
+}
+.tl-date .tl-dow{font-size:0.65rem;color:var(--dim);font-weight:500;}
+.tl-date .tl-range{font-size:0.65rem;color:var(--violet);margin-top:2px;}
+.tl-body{flex:1;}
+.tl-loc{font-size:1rem;font-weight:600;display:flex;align-items:center;gap:6px;}
+.tl-notes{font-size:0.8rem;color:var(--dim);margin-top:3px;}
+.tl-cat{
+  font-size:0.65rem;color:var(--dim);background:var(--surf2);
+  padding:2px 8px;border-radius:4px;display:inline-block;margin-top:4px;
+}
+
+/* ═══ MODAL ═══ */
+.modal-bg{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);
+  z-index:200;align-items:center;justify-content:center;
+  backdrop-filter:blur(6px);
+}
+.modal-bg.open{display:flex;}
+.modal{
+  background:var(--surf);border:1px solid var(--bdr);border-radius:16px;
+  padding:32px;width:460px;max-width:95vw;
+  box-shadow:0 25px 80px rgba(0,0,0,0.6);animation:fadeIn .2s ease;
+}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
+.modal-header h2{font-size:1.2rem;font-weight:700;}
+.modal-close{
+  width:32px;height:32px;border-radius:8px;border:none;
+  background:var(--surf2);color:var(--dim);cursor:pointer;font-size:1.1rem;
+  display:flex;align-items:center;justify-content:center;transition:all .15s;
+}
+.modal-close:hover{background:var(--red);color:white;}
+.form-row{margin-bottom:14px;}
+.form-row label{display:block;font-size:0.78rem;color:var(--dim);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;}
+.form-row input,.form-row textarea,.form-row select{
+  width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--bdr);
+  border-radius:8px;color:var(--text);font-size:0.9rem;font-family:inherit;
+  transition:border-color .15s;
+}
+.form-row input:focus,.form-row textarea:focus,.form-row select:focus{outline:none;border-color:var(--sky);}
+.form-row textarea{resize:vertical;min-height:70px;}
+.form-row-inline{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.colors{display:flex;gap:6px;flex-wrap:wrap;}
+.c-swatch{
+  width:30px;height:30px;border-radius:50%;cursor:pointer;
+  border:3px solid transparent;transition:all .15s;
+}
+.c-swatch:hover,.c-swatch.sel{border-color:white;transform:scale(1.2);}
+.modal-footer{display:flex;gap:8px;margin-top:22px;justify-content:flex-end;}
+.modal-footer button{
+  padding:9px 22px;border-radius:8px;border:1px solid var(--bdr);
+  cursor:pointer;font-size:0.9rem;transition:all .15s;font-family:inherit;
+}
+.btn-del{background:var(--red);color:white;border-color:var(--red);}
+.btn-del:hover{opacity:0.85;}
+.btn-can{background:var(--surf2);color:var(--text);}
+.btn-can:hover{background:var(--bdr);}
+.btn-sav{background:linear-gradient(135deg,var(--sky),var(--violet));color:white;border:none;font-weight:700;padding:9px 28px;}
+.btn-sav:hover{opacity:0.9;}
+
+/* ═══ FOOTER ═══ */
+footer{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 28px;background:var(--surf);
+  border-top:1px solid var(--bdr);flex-shrink:0;font-size:0.78rem;color:var(--dim);
+}
+footer .stats span{margin-right:18px;}
+footer .stats strong{color:var(--sky);}
+.footer-actions{display:flex;gap:6px;align-items:center;}
+.foot-btn{
+  padding:4px 12px;border-radius:6px;border:1px solid var(--bdr);
+  background:var(--surf2);color:var(--dim);cursor:pointer;
+  font-size:0.72rem;font-family:inherit;transition:all .15s;
+}
+.foot-btn:hover{color:var(--text);border-color:var(--sky);}
+.kbd{
+  display:inline-block;background:var(--bg);border:1px solid var(--bdr);
+  border-radius:4px;padding:1px 6px;font-size:0.65rem;color:var(--sky);
+  font-family:inherit;margin:0 1px;
+}
+
+/* ═══ EVENT LIST IN MODAL ═══ */
+.ev-list{margin-bottom:16px;}
+.ev-card{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;background:var(--bg);border:1px solid var(--bdr);
+  border-radius:8px;margin-bottom:6px;cursor:pointer;transition:all .15s;
+}
+.ev-card:hover{border-color:var(--sky);background:var(--surf2);}
+.ev-card-color{width:4px;height:36px;border-radius:3px;flex-shrink:0;}
+.ev-card-icon{font-size:1.1rem;flex-shrink:0;}
+.ev-card-info{flex:1;min-width:0;}
+.ev-card-loc{font-weight:600;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ev-card-meta{font-size:0.7rem;color:var(--dim);}
+.ev-card-actions{display:flex;gap:4px;flex-shrink:0;}
+.ev-card-btn{
+  width:28px;height:28px;border-radius:6px;border:1px solid var(--bdr);
+  background:var(--surf2);color:var(--dim);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:0.8rem;
+  transition:all .15s;
+}
+.ev-card-btn:hover{color:var(--text);border-color:var(--sky);}
+.ev-card-btn.del:hover{color:var(--red);border-color:var(--red);}
+.btn-add-new{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  width:100%;padding:10px;border-radius:8px;border:2px dashed var(--bdr);
+  background:transparent;color:var(--dim);cursor:pointer;
+  font-size:0.85rem;font-family:inherit;transition:all .15s;margin-top:4px;
+}
+.btn-add-new:hover{border-color:var(--sky);color:var(--sky);background:rgba(56,189,248,0.05);}
+.form-section{animation:fadeIn .2s ease;}
+
+/* ═══ RESERVATION DETAILS ═══ */
+.res-toggle{
+  margin-top:14px;border:none;background:none;padding:0;cursor:pointer;width:100%;
+}
+.res-toggle summary{
+  display:flex;align-items:center;gap:6px;
+  font-size:0.78rem;font-weight:600;color:var(--dim);text-transform:uppercase;
+  letter-spacing:0.5px;padding:8px 0;list-style:none;cursor:pointer;
+  border-top:1px solid var(--bdr);margin-top:4px;
+}
+.res-toggle summary::-webkit-details-marker{display:none;}
+.res-toggle summary::before{content:'\\25B6';font-size:0.6rem;transition:transform .2s;}
+.res-toggle[open] summary::before{transform:rotate(90deg);}
+.res-toggle .res-fields{padding-top:8px;animation:fadeIn .2s ease;}
+.res-badge{
+  display:inline-flex;align-items:center;gap:3px;
+  padding:2px 8px;border-radius:4px;font-size:0.65rem;font-weight:600;
+  margin-top:3px;
+}
+.res-badge.confirmed{background:rgba(52,211,153,0.15);color:var(--green);}
+.res-badge.pending{background:rgba(251,191,36,0.15);color:var(--yellow);}
+.res-info{font-size:0.65rem;color:var(--dim);margin-top:2px;}
+.res-info span{margin-right:8px;}
+.booked-row{
+  display:flex;align-items:center;gap:8px;margin-top:10px;
+  padding:8px 12px;background:var(--bg);border:1px solid var(--bdr);border-radius:8px;
+}
+.booked-row input[type="checkbox"]{
+  width:18px;height:18px;accent-color:var(--green);cursor:pointer;
+}
+.booked-row label{font-size:0.85rem;color:var(--text);cursor:pointer;}
+
+/* ═══ DASHBOARD ═══ */
+.dash{padding:16px 28px;max-width:700px;margin:0 auto;width:100%;overflow-y:auto;}
+.dash-date{font-size:1.6rem;font-weight:800;margin-bottom:4px;}
+.dash-subtitle{font-size:0.85rem;color:var(--dim);margin-bottom:20px;}
+.dash-card{
+  background:var(--surf);border:1px solid var(--bdr);border-radius:12px;
+  padding:18px;margin-bottom:12px;animation:fadeIn .3s ease both;
+}
+.dash-card-header{
+  display:flex;align-items:center;gap:8px;margin-bottom:10px;
+  font-size:0.75rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:1px;
+}
+.dash-card-header .dash-icon{font-size:1.1rem;}
+.dash-loc{font-size:1.2rem;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px;}
+.dash-loc .cat-icon{font-size:1.3rem;}
+.dash-meta{font-size:0.8rem;color:var(--dim);line-height:1.6;}
+.dash-meta strong{color:var(--text);}
+.dash-nav-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 16px;border-radius:8px;border:none;
+  background:linear-gradient(135deg,var(--sky),var(--violet));
+  color:white;font-weight:700;font-size:0.85rem;cursor:pointer;
+  text-decoration:none;font-family:inherit;transition:all .15s;margin-top:8px;
+}
+.dash-nav-btn:hover{opacity:0.85;transform:scale(1.02);}
+.dash-progress{margin-top:6px;}
+.dash-progress-bar{
+  height:8px;background:var(--bg);border-radius:4px;overflow:hidden;margin-top:6px;
+}
+.dash-progress-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--sky),var(--violet));transition:width .5s;}
+.dash-upcoming{display:flex;flex-direction:column;gap:8px;}
+.dash-upcoming-item{
+  display:flex;align-items:center;gap:12px;padding:10px 12px;
+  background:var(--bg);border:1px solid var(--bdr);border-radius:8px;
+  cursor:pointer;transition:all .15s;
+}
+.dash-upcoming-item:hover{border-color:var(--sky);}
+.dash-up-date{font-size:0.78rem;font-weight:700;color:var(--sky);min-width:70px;}
+.dash-up-loc{font-size:0.9rem;font-weight:600;flex:1;}
+.dash-up-cat{font-size:0.85rem;}
+.dash-empty{text-align:center;color:var(--dim);padding:40px 20px;font-size:1rem;}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:8px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--surf2);border-radius:4px;}
+::-webkit-scrollbar-thumb:hover{background:var(--bdr);}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>
+    <span class="logo">&#128656;</span>
+    <span class="title-text">Van Trip Planner</span>
+    <span class="subtitle">Summer 2026</span>
+  </h1>
+  <div class="header-actions">
+    <button class="view-btn active" data-view="month" onclick="setView('month')">Calendar</button>
+    <button class="view-btn" data-view="timeline" onclick="setView('timeline')">Timeline</button>
+    <button class="view-btn" data-view="dashboard" onclick="setView('dashboard')" style="background:var(--green);color:var(--bg);border-color:var(--green);font-weight:700;">Dashboard</button>
+  </div>
+</header>
+
+<div class="nav">
+  <button class="nav-btn" onclick="navMonth(-1)" title="Previous month">&#9664;</button>
+
+  <span class="summer-label">Summer &rsquo;26</span>
+
+  <button class="month-tab" data-mi="0" onclick="goMonth(0)">
+    June
+    <span class="event-count" id="ec-0"></span>
+  </button>
+  <button class="month-tab" data-mi="1" onclick="goMonth(1)">
+    July
+    <span class="event-count" id="ec-1"></span>
+  </button>
+  <button class="month-tab" data-mi="2" onclick="goMonth(2)">
+    August
+    <span class="event-count" id="ec-2"></span>
+  </button>
+
+  <button class="nav-btn" onclick="navMonth(1)" title="Next month">&#9654;</button>
+
+  <button class="btn-overview" id="btn-ov" onclick="setView('overview')">3-Month Overview</button>
+</div>
+
+<div class="weekdays" id="weekdays">
+  <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+</div>
+
+<div class="cal-wrap" id="main-area">
+  <div class="cal-grid" id="cal-grid"></div>
+  <div class="overview" id="overview" style="display:none;"></div>
+  <div class="timeline" id="timeline" style="display:none;"></div>
+  <div class="dash" id="dashboard" style="display:none;"></div>
+</div>
+
+<footer>
+  <div class="stats" id="stats"></div>
+  <div class="footer-actions">
+    <button class="foot-btn" onclick="exportData()" title="Download your trip data as a JSON file">Export Backup</button>
+    <button class="foot-btn" onclick="document.getElementById('import-file').click()" title="Restore from a backup file">Import</button>
+    <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)"/>
+    <span style="margin:0 8px;opacity:0.3;">|</span>
+    <span class="kbd">&larr;</span><span class="kbd">&rarr;</span> nav
+    <span class="kbd">1</span><span class="kbd">2</span><span class="kbd">3</span> Jun/Jul/Aug
+    <span class="kbd">T</span> timeline
+    <span class="kbd">D</span> dashboard
+    <span class="kbd">O</span> overview
+    <span class="kbd">Esc</span> close
+  </div>
+</footer>
+
+<!-- Modal -->
+<!-- Day detail panel (shows existing events + add new) -->
+<div class="modal-bg" id="modal-bg">
+  <div class="modal" id="modal-content">
+    <!-- Populated dynamically -->
+  </div>
+</div>
+
+<script>
+// ── Config ──
+const MONTHS = [
+  { name:'June',   year:2026, month:5 },
+  { name:'July',   year:2026, month:6 },
+  { name:'August', year:2026, month:7 }
+];
+const COLORS = ['#38bdf8','#818cf8','#a78bfa','#f472b6','#fb923c','#34d399','#facc15','#ef4444','#2dd4bf','#94a3b8'];
+const CAT_LABEL = {
+  driving:'Driving',camp:'Campsite',city:'City',hike:'Hike',
+  rest:'Rest',sight:'Sightseeing',beach:'Beach',food:'Food',friends:'Friends/Family',other:'Other'
+};
+const CAT_ICON = {
+  driving:'\u{1F697}',camp:'\u{26FA}',city:'\u{1F3D9}',hike:'\u{1F3D4}',
+  rest:'\u{1F634}',sight:'\u{1F4CD}',beach:'\u{1F30A}',food:'\u{1F37D}',
+  friends:'\u{1F91D}',other:'\u{2B50}'
+};
+const DAYS_SHORT = ['S','M','T','W','T','F','S'];
+
+let mi = 0; // month index 0=June,1=July,2=August
+let view = 'month';
+
+// Baked-in trip data (source of truth — updated here, push to GitHub)
+const BAKED_DATA = {"2026-06-10":[{"loc":"Sedona, AZ","cat":"driving","color":"#38bdf8","notes":"","end":null,"confirmation":"RES-9876","checkin":"14:00","checkout":"11:00","phone":"(928) 555-1234","booked":true}],"2026-06-15":[{"loc":"Grand Canyon, AZ","cat":"hike","color":"#38bdf8","notes":"North rim trail","end":null},{"loc":"Flagstaff, AZ","cat":"city","color":"#fb923c","notes":"Resupply stop","end":null}],"2026-07-05":[{"loc":"Custer State Park - Blue Bell, SD","cat":"camp","color":"#818cf8","notes":"Site BB22E | 2 guests, 1 vehicle, 1 night | $45.94 paid","end":"2026-07-06","confirmation":"23448465","checkin":"12:00","checkout":"12:00","phone":"","booked":true}],"2026-07-06":[{"loc":"Custer State Park - Game Lodge, SD","cat":"camp","color":"#34d399","notes":"Site GL35 | 2 guests, 1 vehicle, 1 night | $38.54 paid","end":"2026-07-07","confirmation":"23448472","checkin":"12:00","checkout":"","phone":"","booked":true}]};
+
+// Load: localStorage overrides baked data if present, otherwise use baked data
+let events = JSON.parse(localStorage.getItem('vantrip2') || 'null') || JSON.parse(JSON.stringify(BAKED_DATA));
+// Seed localStorage if empty so edits persist on-device
+if(!localStorage.getItem('vantrip2')) localStorage.setItem('vantrip2', JSON.stringify(events));
+
+let selColor = COLORS[0];
+let editKey = null;
+
+// ── Init ──
+function init(){
+  buildColors();
+  goMonth(0);
+  document.addEventListener('keydown', onKey);
+}
+
+function onKey(e){
+  if(document.getElementById('modal-bg').classList.contains('open')){
+    if(e.key==='Escape') closeModal();
+    return;
+  }
+  if(e.key==='ArrowLeft') navMonth(-1);
+  else if(e.key==='ArrowRight') navMonth(1);
+  else if(e.key==='1') goMonth(0);
+  else if(e.key==='2') goMonth(1);
+  else if(e.key==='3') goMonth(2);
+  else if(e.key==='t'||e.key==='T') setView('timeline');
+  else if(e.key==='o'||e.key==='O') setView('overview');
+  else if(e.key==='m'||e.key==='M') setView('month');
+  else if(e.key==='d'||e.key==='D') setView('dashboard');
+}
+
+function persist(){ localStorage.setItem('vantrip2', JSON.stringify(events)); }
+
+// ── Date helpers ──
+function dk(y,m,d){ return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+
+function eventsOnDate(key){
+  const direct = events[key] || [];
+  const span = [];
+  for(const [k,list] of Object.entries(events)){
+    for(const ev of list){
+      if(ev.end && k < key && ev.end >= key && k !== key) span.push(ev);
+    }
+  }
+  return [...direct, ...span];
+}
+
+// ── Itinerary helper (shared) ──
+function getItinerary(){
+  const all = [];
+  for(const [key,list] of Object.entries(events)){
+    for(const ev of list) all.push({...ev, dateKey:key});
+  }
+  all.sort((a,b)=>a.dateKey.localeCompare(b.dateKey));
+  return all;
+}
+
+function countForMonth(mi){
+  const m = MONTHS[mi];
+  const days = new Date(m.year, m.month+1, 0).getDate();
+  let c = 0;
+  for(let d=1;d<=days;d++){
+    if(eventsOnDate(dk(m.year,m.month,d)).length>0) c++;
+  }
+  return c;
+}
+
+// ── Navigation ──
+function goMonth(i){
+  mi = Math.max(0, Math.min(2, i));
+  if(view!=='month') setView('month');
+  else render();
+}
+function navMonth(delta){
+  if(view==='month') goMonth(mi+delta);
+}
+
+function setView(v){
+  view = v;
+  document.querySelectorAll('.view-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===v));
+  document.getElementById('btn-ov').classList.toggle('active', v==='overview');
+  render();
+}
+
+// ── Render dispatcher ──
+function render(){
+  const grid = document.getElementById('cal-grid');
+  const ov = document.getElementById('overview');
+  const tl = document.getElementById('timeline');
+  const db = document.getElementById('dashboard');
+  const wd = document.getElementById('weekdays');
+  const nav = document.querySelector('.nav');
+
+  grid.style.display = view==='month' ? 'grid' : 'none';
+  wd.style.display = view==='month' ? 'grid' : 'none';
+  nav.style.display = (view==='dashboard') ? 'none' : 'flex';
+  ov.style.display = view==='overview' ? 'grid' : 'none';
+  tl.style.display = view==='timeline' ? 'block' : 'none';
+  db.style.display = view==='dashboard' ? 'block' : 'none';
+
+  // Update month tabs
+  document.querySelectorAll('.month-tab').forEach(t=>{
+    t.classList.toggle('active', +t.dataset.mi===mi && view==='month');
+  });
+
+  // Event counts on tabs
+  for(let i=0;i<3;i++){
+    const c = countForMonth(i);
+    const el = document.getElementById('ec-'+i);
+    el.textContent = c;
+    el.classList.toggle('show', c>0);
+  }
+
+  if(view==='month') renderMonth();
+  else if(view==='overview') renderOverview();
+  else if(view==='dashboard') renderDashboard();
+  else renderTimeline();
+
+  renderStats();
+}
+
+// ── Month View ──
+function renderMonth(){
+  const grid = document.getElementById('cal-grid');
+  const m = MONTHS[mi];
+  const firstDow = new Date(m.year, m.month, 1).getDay();
+  const totalDays = new Date(m.year, m.month+1, 0).getDate();
+  const today = new Date();
+
+  let html = '';
+
+  // Empty leading cells
+  for(let i=0;i<firstDow;i++) html += '<div class="day empty"></div>';
+
+  for(let d=1;d<=totalDays;d++){
+    const key = dk(m.year, m.month, d);
+    const dow = new Date(m.year, m.month, d).getDay();
+    const isWeekend = dow===0||dow===6;
+    const isToday = today.getFullYear()===m.year && today.getMonth()===m.month && today.getDate()===d;
+    const evs = eventsOnDate(key);
+
+    let cls = 'day';
+    if(isToday) cls += ' today';
+    if(isWeekend) cls += ' weekend';
+    if(evs.length>0) cls += ' has-event';
+
+    let chips = '';
+    if(evs.length>0){
+      chips = evs.map(ev=>{
+        const icon = CAT_ICON[ev.cat]||'';
+        const booked = ev.booked ? ' &#10003;' : '';
+        return `<div class="event-chip" style="border-left:3px solid ${ev.color}"><span class="cat-icon">${icon}</span>${ev.loc}${booked}</div>`;
+      }).join('');
+      // color bar from first event
+      chips += `<div class="span-bar" style="background:${evs[0].color}"></div>`;
+    }
+
+    const delay = (firstDow + d - 1) * 0.012;
+
+    html += `<div class="${cls}" onclick="openModal('${key}')" style="animation-delay:${delay}s">
+      <div class="day-header">
+        <span class="day-num">${d}</span>
+      </div>
+      ${chips}
+    </div>`;
+  }
+
+  grid.innerHTML = html;
+}
+
+// ── Overview ──
+function renderOverview(){
+  const ov = document.getElementById('overview');
+  const today = new Date();
+  let html = '';
+
+  for(let mi2=0;mi2<3;mi2++){
+    const m = MONTHS[mi2];
+    const totalDays = new Date(m.year, m.month+1, 0).getDate();
+    const firstDow = new Date(m.year, m.month, 1).getDay();
+    let evCount = 0;
+
+    let labels = DAYS_SHORT.map(d=>`<div class="ov-day-label">${d}</div>`).join('');
+    let cells = '';
+    for(let i=0;i<firstDow;i++) cells += '<div class="ov-day empty"></div>';
+    for(let d=1;d<=totalDays;d++){
+      const key = dk(m.year,m.month,d);
+      const evs = eventsOnDate(key);
+      const isToday = today.getFullYear()===m.year && today.getMonth()===m.month && today.getDate()===d;
+      let cls = 'ov-day';
+      if(evs.length>0){ cls += ' has-event'; evCount++; }
+      if(isToday) cls += ' today';
+      const style = evs.length>0 && evs[0].color ? `style="background:${evs[0].color}"` : '';
+      cells += `<div class="${cls}" ${style}>${d}</div>`;
+    }
+
+    html += `<div class="ov-month" onclick="goMonth(${mi2})">
+      <h3>${m.name} ${m.year}</h3>
+      <div class="ov-grid">${labels}${cells}</div>
+      <div class="ov-stats">
+        <span><strong>${evCount}</strong> days marked</span>
+      </div>
+    </div>`;
+  }
+  ov.innerHTML = html;
+}
+
+// ── Timeline ──
+function renderTimeline(){
+  const tl = document.getElementById('timeline');
+  const all = getItinerary();
+
+  if(all.length===0){
+    tl.innerHTML = '<div class="tl-empty">No stops planned yet.<br><br>Click any day on the calendar to start mapping your van trip!<br><button class="tl-empty-btn" onclick="setView(\'month\')">Open Calendar</button></div>';
+    return;
+  }
+
+  let html = '';
+  let lastMonth = '';
+
+  all.forEach((ev,i)=>{
+    const d = new Date(ev.dateKey+'T00:00:00');
+    const mLabel = d.toLocaleDateString('en-US',{month:'long', year:'numeric'});
+    if(mLabel!==lastMonth){
+      html += `<div class="tl-month-label">${mLabel}</div>`;
+      lastMonth = mLabel;
+    }
+    const dateStr = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    const dowStr = d.toLocaleDateString('en-US',{weekday:'long'});
+    const icon = CAT_ICON[ev.cat]||'';
+    let rangeStr = '';
+    if(ev.end){
+      const ed = new Date(ev.end+'T00:00:00');
+      rangeStr = `through ${ed.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
+    }
+
+    html += `<div class="tl-item" onclick="openModal('${ev.dateKey}')" style="animation-delay:${i*0.05}s">
+      <div class="tl-color" style="background:${ev.color}"></div>
+      <div class="tl-date">
+        ${dateStr}
+        <span class="tl-dow">${dowStr}</span>
+        ${rangeStr ? `<span class="tl-range">${rangeStr}</span>` : ''}
+      </div>
+      <div class="tl-body">
+        <div class="tl-loc">${icon} ${ev.loc}</div>
+        ${ev.notes ? `<div class="tl-notes">${ev.notes}</div>` : ''}
+        <span class="tl-cat">${CAT_LABEL[ev.cat]||ev.cat}</span>
+        ${ev.booked ? '<span class="res-badge confirmed" style="margin-left:4px">&#10003; Confirmed</span>' : ''}
+        ${ev.confirmation||ev.checkin||ev.phone ? `<div class="res-info">${ev.confirmation?'<span>#'+ev.confirmation+'</span>':''}${ev.checkin?'<span>In: '+ev.checkin+'</span>':''}${ev.checkout?'<span>Out: '+ev.checkout+'</span>':''}${ev.phone?'<span>'+ev.phone+'</span>':''}</div>` : ''}
+      </div>
+    </div>`;
+  });
+
+  tl.innerHTML = html;
+}
+
+// ── Dashboard ──
+function renderDashboard(){
+  const db = document.getElementById('dashboard');
+  const itin = getItinerary();
+  const today = new Date();
+  const todayKey = dk(today.getFullYear(), today.getMonth(), today.getDate());
+  const tripStart = new Date(2026, 5, 1); // June 1 2026
+  const tripEnd = new Date(2026, 7, 31);  // Aug 31 2026
+  const totalDays = 92;
+
+  // Find today's events and next upcoming stop
+  const todayEvents = eventsOnDate(todayKey);
+  let nextStop = null;
+  let prevStop = null;
+  for(let i=0; i<itin.length; i++){
+    if(itin[i].dateKey > todayKey){ nextStop = itin[i]; break; }
+    if(itin[i].dateKey <= todayKey) prevStop = itin[i];
+  }
+
+  // Trip progress
+  const dayNum = Math.max(0, Math.min(totalDays, Math.floor((today - tripStart) / 86400000) + 1));
+  const pct = Math.max(0, Math.min(100, Math.round((dayNum / totalDays) * 100)));
+  const beforeTrip = today < tripStart;
+  const afterTrip = today > tripEnd;
+  const daysUntil = beforeTrip ? Math.ceil((tripStart - today) / 86400000) : 0;
+
+  let html = '';
+
+  // Date header
+  const dateStr = today.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  html += `<div class="dash-date">${dateStr}</div>`;
+  if(beforeTrip) html += `<div class="dash-subtitle">${daysUntil} days until your trip begins!</div>`;
+  else if(afterTrip) html += `<div class="dash-subtitle">Trip complete! Check your stats.</div>`;
+  else html += `<div class="dash-subtitle">Day ${dayNum} of ${totalDays} &mdash; Summer Road Trip</div>`;
+
+  // Current location / today's schedule
+  if(todayEvents.length > 0){
+    html += `<div class="dash-card" style="animation-delay:0.05s">
+      <div class="dash-card-header"><span class="dash-icon">&#128205;</span> TODAY</div>`;
+    todayEvents.forEach(ev => {
+      const icon = CAT_ICON[ev.cat]||'';
+      html += `<div class="dash-loc"><span class="cat-icon">${icon}</span> ${ev.loc}</div>
+        <div class="dash-meta">
+          <strong>${CAT_LABEL[ev.cat]||ev.cat}</strong>
+          ${ev.booked ? ' &middot; <span style="color:var(--green)">&#10003; Confirmed</span>' : ''}
+          ${ev.confirmation ? ' &middot; #'+ev.confirmation : ''}
+          ${ev.checkin ? '<br>Check-in: <strong>'+ev.checkin+'</strong>' : ''}
+          ${ev.checkout ? ' &middot; Check-out: <strong>'+ev.checkout+'</strong>' : ''}
+          ${ev.phone ? '<br>Phone: '+ev.phone : ''}
+          ${ev.notes ? '<br>'+ev.notes : ''}
+        </div>`;
+    });
+    html += `</div>`;
+  } else if(!beforeTrip && !afterTrip){
+    html += `<div class="dash-card" style="animation-delay:0.05s">
+      <div class="dash-card-header"><span class="dash-icon">&#128205;</span> TODAY</div>
+      <div class="dash-empty">No stops planned for today. Enjoy the open road!</div>
+    </div>`;
+  }
+
+  // Next stop
+  if(nextStop){
+    const nd = new Date(nextStop.dateKey+'T00:00:00');
+    const nextDateStr = nd.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+    const daysAway = Math.ceil((nd - today) / 86400000);
+    const icon = CAT_ICON[nextStop.cat]||'';
+    const mapsUrl = 'https://www.google.com/maps/dir/' +
+      (todayEvents.length>0 ? encodeURIComponent(todayEvents[0].loc)+'/' : '') +
+      encodeURIComponent(nextStop.loc);
+
+    html += `<div class="dash-card" style="animation-delay:0.1s">
+      <div class="dash-card-header"><span class="dash-icon">&#128663;</span> NEXT STOP &mdash; ${daysAway===0?'Today':daysAway===1?'Tomorrow':'In '+daysAway+' days'}</div>
+      <div class="dash-loc"><span class="cat-icon">${icon}</span> ${nextStop.loc}</div>
+      <div class="dash-meta">
+        ${nextDateStr} &middot; ${CAT_LABEL[nextStop.cat]||nextStop.cat}
+        ${nextStop.booked ? ' &middot; <span style="color:var(--green)">&#10003; Confirmed</span>' : ''}
+        ${nextStop.confirmation ? '<br>#'+nextStop.confirmation : ''}
+        ${nextStop.checkin ? ' &middot; Check-in: <strong>'+nextStop.checkin+'</strong>' : ''}
+        ${nextStop.notes ? '<br>'+nextStop.notes : ''}
+      </div>
+      <a class="dash-nav-btn" href="${mapsUrl}" target="_blank" rel="noopener">&#128506; Open in Google Maps</a>
+    </div>`;
+  }
+
+  // Upcoming 5 days
+  const upcoming = itin.filter(ev => ev.dateKey > todayKey).slice(0, 5);
+  if(upcoming.length > 0){
+    html += `<div class="dash-card" style="animation-delay:0.15s">
+      <div class="dash-card-header"><span class="dash-icon">&#128197;</span> COMING UP</div>
+      <div class="dash-upcoming">`;
+    upcoming.forEach(ev => {
+      const ud = new Date(ev.dateKey+'T00:00:00');
+      const udStr = ud.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+      const icon = CAT_ICON[ev.cat]||'';
+      html += `<div class="dash-upcoming-item" onclick="openModal('${ev.dateKey}')">
+        <div class="dash-up-date">${udStr}</div>
+        <div class="dash-up-loc">${ev.loc}</div>
+        <span class="dash-up-cat">${icon}</span>
+        ${ev.booked?'<span class="res-badge confirmed" style="font-size:0.6rem">&#10003;</span>':''}
+      </div>`;
+    });
+    html += `</div></div>`;
+  }
+
+  // Trip progress
+  html += `<div class="dash-card" style="animation-delay:0.2s">
+    <div class="dash-card-header"><span class="dash-icon">&#9728;</span> TRIP PROGRESS</div>
+    <div class="dash-meta">
+      <strong>${itin.length}</strong> stops planned &middot;
+      <strong>${new Set(itin.map(e=>e.loc)).size}</strong> locations &middot;
+      <strong>${itin.filter(e=>e.booked).length}</strong> confirmed
+    </div>
+    <div class="dash-progress">
+      <div class="dash-meta">${beforeTrip ? 'Trip starts June 1' : afterTrip ? 'Trip ended Aug 31' : 'Day '+dayNum+' / '+totalDays}</div>
+      <div class="dash-progress-bar"><div class="dash-progress-fill" style="width:${pct}%"></div></div>
+    </div>
+  </div>`;
+
+  db.innerHTML = html;
+}
+
+// ── Stats ──
+function renderStats(){
+  const all = Object.values(events).flat();
+  const locs = new Set(all.map(e=>e.loc)).size;
+  const days = Object.keys(events).filter(k=>events[k].length>0).length;
+
+  // Count total trip days including spans
+  let spanDays = 0;
+  all.forEach(ev=>{
+    if(ev.end){
+      const s = new Date(ev.end+'T00:00:00') - new Date(Object.keys(events).find(k=>(events[k]||[]).includes(ev))+'T00:00:00');
+      spanDays += Math.max(0, Math.floor(s/(86400000)));
+    }
+  });
+
+  document.getElementById('stats').innerHTML =
+    `<span><strong>${all.length}</strong> stops</span>
+     <span><strong>${locs}</strong> locations</span>
+     <span><strong>${days + spanDays}</strong> days covered</span>
+     <span>&#9728; 92 days of summer</span>`;
+}
+
+// ── Modal ──
+let modalKey = null;   // which date key is open
+let editIdx = -1;      // -1 = adding new, >=0 = editing that index
+
+function openModal(key){
+  modalKey = key;
+  editIdx = -1;
+  const evList = events[key] || [];
+
+  if(evList.length === 0){
+    // No events yet — go straight to the add form
+    showForm(key, null, -1);
+  } else {
+    // Has events — show the list view
+    showDayPanel(key);
+  }
+
+  document.getElementById('modal-bg').classList.add('open');
+}
+
+function showDayPanel(key){
+  const evList = events[key] || [];
+  const d = new Date(key+'T00:00:00');
+  const dateLabel = d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+
+  let cards = evList.map((ev,i)=>{
+    const icon = CAT_ICON[ev.cat]||'';
+    const catLabel = CAT_LABEL[ev.cat]||ev.cat;
+    const endStr = ev.end ? ' &rarr; '+new Date(ev.end+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
+    return `<div class="ev-card" onclick="editEvent('${key}',${i})">
+      <div class="ev-card-color" style="background:${ev.color}"></div>
+      <span class="ev-card-icon">${icon}</span>
+      <div class="ev-card-info">
+        <div class="ev-card-loc">${ev.loc}</div>
+        <div class="ev-card-meta">${catLabel}${endStr}${ev.notes?' &middot; '+ev.notes.slice(0,40):''}${ev.confirmation?' &middot; #'+ev.confirmation:''}</div>
+        ${ev.booked?'<span class="res-badge confirmed">&#10003; Confirmed</span>':''}${ev.checkin?'<span class="res-info"><span>In: '+ev.checkin+'</span></span>':''}
+      </div>
+      <div class="ev-card-actions">
+        <button class="ev-card-btn" onclick="event.stopPropagation();editEvent('${key}',${i})" title="Edit">&#9998;</button>
+        <button class="ev-card-btn del" onclick="event.stopPropagation();delEvent('${key}',${i})" title="Delete">&times;</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('modal-content').innerHTML = `
+    <div class="modal-header">
+      <h2>${dateLabel}</h2>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="ev-list">${cards}</div>
+    <button class="btn-add-new" onclick="showForm('${key}',null,-1)">+ Add Another Stop</button>
+  `;
+}
+
+function editEvent(key, idx){
+  modalKey = key;
+  const ev = (events[key]||[])[idx];
+  if(ev) showForm(key, ev, idx);
+}
+
+function showForm(key, ev, idx){
+  editIdx = idx;
+  modalKey = key;
+  const isEdit = ev !== null && ev !== undefined;
+  selColor = isEdit ? (ev.color||COLORS[0]) : COLORS[0];
+  const evList = events[key]||[];
+  const hasOthers = evList.length > 0 && (idx===-1 || evList.length > 1);
+
+  const colorSwatches = COLORS.map(c=>
+    `<div class="c-swatch ${c===selColor?'sel':''}" style="background:${c}" onclick="pickColor('${c}')"></div>`
+  ).join('');
+
+  const catOptions = [
+    ['driving','&#128663; Driving / Transit'],['camp','&#9978; Campsite / RV Park'],
+    ['city','&#127961; City Stop'],['hike','&#127956; Hike / Outdoors'],
+    ['rest','&#128564; Rest Day'],['sight','&#128205; Sightseeing'],
+    ['beach','&#127754; Beach'],['food','&#127860; Food / Restaurant'],
+    ['friends','&#129309; Friends / Family'],['other','&#11088; Other']
+  ].map(([v,l])=>`<option value="${v}" ${isEdit&&ev.cat===v?'selected':''}>${l}</option>`).join('');
+
+  document.getElementById('modal-content').innerHTML = `
+    <div class="modal-header">
+      <h2>${isEdit?'Edit Stop':'Add Stop'}</h2>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="form-section">
+      <div class="form-row-inline">
+        <div class="form-row">
+          <label>Start Date</label>
+          <input type="date" id="m-date" min="2026-06-01" max="2026-08-31" value="${key}"/>
+        </div>
+        <div class="form-row">
+          <label>End Date (optional)</label>
+          <input type="date" id="m-end" min="2026-06-01" max="2026-08-31" value="${isEdit&&ev.end?ev.end:''}"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Location / Place</label>
+        <input type="text" id="m-loc" placeholder="e.g. Moab, UT" value="${isEdit?ev.loc:''}"/>
+      </div>
+      <div class="form-row-inline">
+        <div class="form-row">
+          <label>Category</label>
+          <select id="m-cat">${catOptions}</select>
+        </div>
+        <div class="form-row">
+          <label>Color</label>
+          <div class="colors" id="colors">${colorSwatches}</div>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Notes</label>
+        <textarea id="m-notes" placeholder="Reservations, arrival time, things to do...">${isEdit?ev.notes:''}</textarea>
+      </div>
+      <details class="res-toggle" ${isEdit&&(ev.confirmation||ev.checkin||ev.phone||ev.booked)?'open':''}>
+        <summary>Reservation Details</summary>
+        <div class="res-fields">
+          <div class="form-row">
+            <label>Confirmation #</label>
+            <input type="text" id="m-confirm" placeholder="e.g. ABC12345" value="${isEdit&&ev.confirmation?ev.confirmation:''}"/>
+          </div>
+          <div class="form-row-inline">
+            <div class="form-row">
+              <label>Check-in Time</label>
+              <input type="time" id="m-checkin" value="${isEdit&&ev.checkin?ev.checkin:''}"/>
+            </div>
+            <div class="form-row">
+              <label>Check-out Time</label>
+              <input type="time" id="m-checkout" value="${isEdit&&ev.checkout?ev.checkout:''}"/>
+            </div>
+          </div>
+          <div class="form-row">
+            <label>Phone</label>
+            <input type="tel" id="m-phone" placeholder="e.g. (435) 555-1234" value="${isEdit&&ev.phone?ev.phone:''}"/>
+          </div>
+          <div class="booked-row">
+            <input type="checkbox" id="m-booked" ${isEdit&&ev.booked?'checked':''}/>
+            <label for="m-booked">Reservation Confirmed / Booked</label>
+          </div>
+        </div>
+      </details>
+      <div class="modal-footer">
+        ${hasOthers?`<button class="btn-can" onclick="showDayPanel('${key}')">&larr; Back</button>`:''}
+        <span style="flex:1"></span>
+        <button class="btn-can" onclick="closeModal()">Cancel</button>
+        <button class="btn-sav" onclick="saveEvent()">Save Stop</button>
+      </div>
+    </div>
+  `;
+  setTimeout(()=>{const el=document.getElementById('m-loc');if(el)el.focus();},120);
+}
+
+function closeModal(){
+  document.getElementById('modal-bg').classList.remove('open');
+  modalKey=null; editIdx=-1;
+}
+
+function saveEvent(){
+  const date = document.getElementById('m-date').value;
+  const loc = document.getElementById('m-loc').value.trim();
+  if(!date||!loc) return;
+
+  const ev = {
+    loc,
+    cat: document.getElementById('m-cat').value,
+    color: selColor,
+    notes: document.getElementById('m-notes').value.trim(),
+    end: document.getElementById('m-end').value || null,
+    confirmation: document.getElementById('m-confirm').value.trim(),
+    checkin: document.getElementById('m-checkin').value,
+    checkout: document.getElementById('m-checkout').value,
+    phone: document.getElementById('m-phone').value.trim(),
+    booked: document.getElementById('m-booked').checked
+  };
+
+  if(!events[date]) events[date] = [];
+
+  if(editIdx >= 0){
+    // Editing existing — if date changed, remove from old location
+    if(modalKey !== date){
+      events[modalKey].splice(editIdx, 1);
+      if(events[modalKey].length===0) delete events[modalKey];
+      if(!events[date]) events[date] = [];
+      events[date].push(ev);
+    } else {
+      events[date][editIdx] = ev;
+    }
+  } else {
+    // Adding new
+    events[date].push(ev);
+  }
+
+  persist();
+  closeModal();
+  render();
+}
+
+function delEvent(key, idx){
+  if(!events[key]) return;
+  events[key].splice(idx, 1);
+  if(events[key].length===0) delete events[key];
+  persist();
+
+  // If modal is open, refresh it
+  if(document.getElementById('modal-bg').classList.contains('open')){
+    const remaining = events[key]||[];
+    if(remaining.length > 0){
+      showDayPanel(key);
+    } else {
+      closeModal();
+    }
+  }
+  render();
+}
+
+function buildColors(){
+  const el = document.getElementById('colors');
+  if(!el) return;
+  el.innerHTML = COLORS.map(c=>
+    `<div class="c-swatch ${c===selColor?'sel':''}" style="background:${c}" onclick="pickColor('${c}')"></div>`
+  ).join('');
+}
+function pickColor(c){
+  selColor = c;
+  document.querySelectorAll('.c-swatch').forEach(s=>{
+    s.classList.toggle('sel', s.style.backgroundColor === c || s.style.background === c);
+  });
+}
+
+// ── Export / Import ──
+function exportData(){
+  const blob = new Blob([JSON.stringify(events, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'van-trip-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    try {
+      const data = JSON.parse(ev.target.result);
+      if(typeof data === 'object' && data !== null){
+        events = data;
+        persist();
+        render();
+      }
+    } catch(err){ /* invalid file */ }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+// Click outside modal
+document.getElementById('modal-bg').addEventListener('click', e=>{
+  if(e.target===e.currentTarget) closeModal();
+});
+
+init();
+</script>
+</body>
+</html>

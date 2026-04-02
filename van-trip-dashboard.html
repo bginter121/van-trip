@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Van Trip — Today</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#0a0f1e;--surf:#1a2340;--surf2:#243055;
+  --bdr:#3a4d7a;--text:#e8edf5;--dim:#8a9bc0;
+  --sky:#38bdf8;--violet:#818cf8;--green:#34d399;
+  --yellow:#facc15;--pink:#f472b6;--orange:#fb923c;--red:#ef4444;
+}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+body{
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  background:var(--bg);color:var(--text);min-height:100vh;
+  padding:20px 16px env(safe-area-inset-bottom,20px);
+}
+.top{text-align:center;margin-bottom:20px;}
+.top .logo{font-size:2rem;}
+.top .title{font-size:1rem;font-weight:700;color:var(--sky);margin-top:4px;}
+.date{font-size:1.5rem;font-weight:800;margin-bottom:4px;}
+.sub{font-size:0.9rem;color:var(--dim);margin-bottom:20px;}
+.card{
+  background:var(--surf);border:1px solid var(--bdr);border-radius:14px;
+  padding:20px;margin-bottom:14px;animation:fadeIn .3s ease both;
+}
+.card-label{
+  font-size:0.72rem;font-weight:700;color:var(--dim);text-transform:uppercase;
+  letter-spacing:1px;margin-bottom:12px;display:flex;align-items:center;gap:6px;
+}
+.card-label .ic{font-size:1.1rem;}
+.loc{font-size:1.3rem;font-weight:800;margin-bottom:6px;display:flex;align-items:center;gap:8px;}
+.loc .ci{font-size:1.4rem;}
+.meta{font-size:0.88rem;color:var(--dim);line-height:1.7;}
+.meta strong{color:var(--text);}
+.confirmed{color:var(--green);}
+.maps-btn{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  width:100%;padding:14px;border-radius:10px;border:none;margin-top:12px;
+  background:linear-gradient(135deg,var(--sky),var(--violet));
+  color:white;font-size:1rem;font-weight:700;cursor:pointer;
+  text-decoration:none;font-family:inherit;
+}
+.maps-btn:active{opacity:0.8;}
+.upcoming{display:flex;flex-direction:column;gap:8px;}
+.up-item{
+  display:flex;align-items:center;gap:12px;padding:12px;
+  background:var(--bg);border:1px solid var(--bdr);border-radius:10px;
+}
+.up-date{font-size:0.85rem;font-weight:700;color:var(--sky);min-width:60px;}
+.up-loc{font-size:0.95rem;font-weight:600;flex:1;}
+.up-ic{font-size:1rem;}
+.progress-bar{height:10px;background:var(--bg);border-radius:5px;margin-top:8px;overflow:hidden;}
+.progress-fill{height:100%;border-radius:5px;background:linear-gradient(90deg,var(--sky),var(--violet));}
+.foot{text-align:center;margin-top:20px;font-size:0.75rem;color:var(--dim);}
+.foot a{color:var(--sky);text-decoration:none;}
+.no-data{text-align:center;padding:40px 20px;color:var(--dim);}
+.no-data h2{margin-bottom:8px;color:var(--text);}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="logo">&#128656;</div>
+  <div class="title">Van Trip Dashboard</div>
+</div>
+<div id="app"></div>
+<div class="foot">
+  Auto-refreshes every 60s &middot; <a href="index.html">Open Full Planner</a>
+</div>
+
+<script>
+const CAT_ICON = {
+  driving:'\u{1F697}',camp:'\u{26FA}',city:'\u{1F3D9}',hike:'\u{1F3D4}',
+  rest:'\u{1F634}',sight:'\u{1F4CD}',beach:'\u{1F30A}',food:'\u{1F37D}',
+  friends:'\u{1F91D}',other:'\u{2B50}'
+};
+const CAT_LABEL = {
+  driving:'Driving',camp:'Campsite',city:'City',hike:'Hike',
+  rest:'Rest',sight:'Sightseeing',beach:'Beach',food:'Food',friends:'Friends/Family',other:'Other'
+};
+
+function dk(y,m,d){ return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+
+const BAKED_DATA = {"2026-06-10":[{"loc":"Sedona, AZ","cat":"driving","color":"#38bdf8","notes":"","end":null,"confirmation":"RES-9876","checkin":"14:00","checkout":"11:00","phone":"(928) 555-1234","booked":true}],"2026-06-15":[{"loc":"Grand Canyon, AZ","cat":"hike","color":"#38bdf8","notes":"North rim trail","end":null},{"loc":"Flagstaff, AZ","cat":"city","color":"#fb923c","notes":"Resupply stop","end":null}],"2026-07-05":[{"loc":"Custer State Park - Blue Bell, SD","cat":"camp","color":"#818cf8","notes":"Site BB22E | 2 guests, 1 vehicle, 1 night | $45.94 paid","end":"2026-07-06","confirmation":"23448465","checkin":"12:00","checkout":"12:00","phone":"","booked":true}],"2026-07-06":[{"loc":"Custer State Park - Game Lodge, SD","cat":"camp","color":"#34d399","notes":"Site GL35 | 2 guests, 1 vehicle, 1 night | $38.54 paid","end":"2026-07-07","confirmation":"23448472","checkin":"12:00","checkout":"","phone":"","booked":true}]};
+
+function loadEvents(){
+  try {
+    const stored = JSON.parse(localStorage.getItem('vantrip2') || 'null');
+    return stored || JSON.parse(JSON.stringify(BAKED_DATA));
+  } catch(e){ return JSON.parse(JSON.stringify(BAKED_DATA)); }
+}
+
+function getItinerary(events){
+  const all = [];
+  for(const [key,list] of Object.entries(events)){
+    for(const ev of list) all.push({...ev, dateKey:key});
+  }
+  all.sort((a,b)=>a.dateKey.localeCompare(b.dateKey));
+  return all;
+}
+
+function eventsOnDate(events, key){
+  const direct = events[key] || [];
+  const span = [];
+  for(const [k,list] of Object.entries(events)){
+    for(const ev of list){
+      if(ev.end && k < key && ev.end >= key && k !== key) span.push(ev);
+    }
+  }
+  return [...direct, ...span];
+}
+
+function render(){
+  const events = loadEvents();
+  const itin = getItinerary(events);
+  const app = document.getElementById('app');
+  const today = new Date();
+  const todayKey = dk(today.getFullYear(), today.getMonth(), today.getDate());
+  const tripStart = new Date(2026, 5, 1);
+  const tripEnd = new Date(2026, 7, 31);
+  const totalDays = 92;
+
+  if(Object.keys(events).length === 0){
+    app.innerHTML = '<div class="no-data"><h2>No trip data yet</h2><p>Open the <a href="index.html" style="color:var(--sky)">Full Planner</a> to start adding stops.</p></div>';
+    return;
+  }
+
+  const todayEvents = eventsOnDate(events, todayKey);
+  let nextStop = null;
+  for(const ev of itin){
+    if(ev.dateKey > todayKey){ nextStop = ev; break; }
+  }
+
+  const dayNum = Math.max(0, Math.min(totalDays, Math.floor((today - tripStart) / 86400000) + 1));
+  const pct = Math.max(0, Math.min(100, Math.round((dayNum / totalDays) * 100)));
+  const beforeTrip = today < tripStart;
+  const daysUntil = beforeTrip ? Math.ceil((tripStart - today) / 86400000) : 0;
+
+  let html = '';
+  const dateStr = today.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  html += `<div class="date">${dateStr}</div>`;
+  html += `<div class="sub">${beforeTrip ? daysUntil+' days until your trip!' : 'Day '+dayNum+' of '+totalDays}</div>`;
+
+  // Today
+  if(todayEvents.length > 0){
+    html += '<div class="card" style="animation-delay:0.05s"><div class="card-label"><span class="ic">&#128205;</span> TODAY</div>';
+    todayEvents.forEach(ev => {
+      const icon = CAT_ICON[ev.cat]||'';
+      html += `<div class="loc"><span class="ci">${icon}</span>${ev.loc}</div>
+        <div class="meta">
+          ${CAT_LABEL[ev.cat]||ev.cat}
+          ${ev.booked ? ' &middot; <span class="confirmed">&#10003; Confirmed</span>' : ''}
+          ${ev.confirmation ? ' &middot; #'+ev.confirmation : ''}
+          ${ev.checkin ? '<br>Check-in: <strong>'+ev.checkin+'</strong>' : ''}
+          ${ev.checkout ? ' &middot; Check-out: <strong>'+ev.checkout+'</strong>' : ''}
+          ${ev.phone ? '<br>&#128222; '+ev.phone : ''}
+          ${ev.notes ? '<br>'+ev.notes : ''}
+        </div>`;
+      const mapsSearch = 'https://www.google.com/maps/search/' + encodeURIComponent(ev.loc);
+      html += `<a class="maps-btn" href="${mapsSearch}" target="_blank">&#128506; Navigate Here</a>`;
+    });
+    html += '</div>';
+  }
+
+  // Next stop
+  if(nextStop){
+    const nd = new Date(nextStop.dateKey+'T00:00:00');
+    const nStr = nd.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+    const dAway = Math.ceil((nd - today) / 86400000);
+    const icon = CAT_ICON[nextStop.cat]||'';
+    const mapsUrl = 'https://www.google.com/maps/dir/' +
+      (todayEvents.length>0 ? encodeURIComponent(todayEvents[0].loc)+'/' : '') +
+      encodeURIComponent(nextStop.loc);
+
+    html += `<div class="card" style="animation-delay:0.1s">
+      <div class="card-label"><span class="ic">&#128663;</span> NEXT STOP &mdash; ${dAway<=1?'Tomorrow':'In '+dAway+' days'}</div>
+      <div class="loc"><span class="ci">${icon}</span>${nextStop.loc}</div>
+      <div class="meta">
+        ${nStr} &middot; ${CAT_LABEL[nextStop.cat]||nextStop.cat}
+        ${nextStop.booked ? ' &middot; <span class="confirmed">&#10003; Confirmed</span>' : ''}
+        ${nextStop.confirmation ? '<br>#'+nextStop.confirmation : ''}
+        ${nextStop.checkin ? ' &middot; Check-in: <strong>'+nextStop.checkin+'</strong>' : ''}
+        ${nextStop.notes ? '<br>'+nextStop.notes : ''}
+      </div>
+      <a class="maps-btn" href="${mapsUrl}" target="_blank">&#128506; Get Directions</a>
+    </div>`;
+  }
+
+  // Upcoming
+  const upcoming = itin.filter(ev => ev.dateKey > todayKey).slice(0, 7);
+  if(upcoming.length > 1){
+    html += '<div class="card" style="animation-delay:0.15s"><div class="card-label"><span class="ic">&#128197;</span> COMING UP</div><div class="upcoming">';
+    upcoming.forEach(ev => {
+      const ud = new Date(ev.dateKey+'T00:00:00');
+      const udStr = ud.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+      const icon = CAT_ICON[ev.cat]||'';
+      html += `<div class="up-item">
+        <div class="up-date">${udStr}</div>
+        <div class="up-loc">${ev.loc}</div>
+        <span class="up-ic">${icon}</span>
+      </div>`;
+    });
+    html += '</div></div>';
+  }
+
+  // Progress
+  html += `<div class="card" style="animation-delay:0.2s">
+    <div class="card-label"><span class="ic">&#9728;</span> TRIP PROGRESS</div>
+    <div class="meta">
+      <strong>${itin.length}</strong> stops &middot;
+      <strong>${new Set(itin.map(e=>e.loc)).size}</strong> locations &middot;
+      <strong>${itin.filter(e=>e.booked).length}</strong> confirmed
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+  </div>`;
+
+  app.innerHTML = html;
+}
+
+render();
+setInterval(render, 60000);
+</script>
+</body>
+</html>
